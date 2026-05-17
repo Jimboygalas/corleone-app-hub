@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'RepoHive Mailbox')
+@section('title', 'Corleone App Hub Mailbox')
 
 @section('content')
 <div class="mailbox">
@@ -10,7 +10,7 @@
         <header class="topbar">
             <div>
                 <h2 id="mailTitle">Inbox</h2>
-                <small id="userEmail">Verified User</small>
+                <small><span>Corleone App Hub</span> / <span id="userEmail">Verified User</span></small>
             </div>
             <div class="topbar-actions">
                 <input id="searchMail" placeholder="Search mail..." onkeyup="filterMail()">

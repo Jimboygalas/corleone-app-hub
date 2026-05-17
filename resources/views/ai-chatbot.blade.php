@@ -1,15 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'RepoHive AI Chatbot')
+@section('title', 'Corleone App Hub AI Chatbot')
 @section('bodyClass', 'chatbot-body')
 
 @section('content')
 <div class="chatbot-only-page">
     <main class="chat-panel">
         <header class="chat-header">
-            <div class="ai-orb">AI</div>
+            <div class="ai-orb">@include('partials.icon', ['name' => 'bot'])</div>
             <div>
-                <h2>RepoHive AI Assistant</h2>
+                <h2>Corleone AI Assistant</h2>
                 <small>Online - Ready to help</small>
             </div>
             <a class="btn compact light panel-link" href="{{ route('mailbox') }}">Mailbox</a>
@@ -19,7 +19,7 @@
             <div class="chat-message bot show">
                 <div class="avatar">AI</div>
                 <div class="bubble">
-                    Hi! I am your RepoHive AI Assistant. How can I help you today?
+                    Hi! I am your Corleone App Hub AI Assistant. How can I help you today?
                 </div>
             </div>
         </section>

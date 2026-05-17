@@ -1,9 +1,12 @@
-const prototypeOtp = "123456";
+const OTP_STORAGE_KEY = "corleone_demo_otp";
+const OTP_TARGET_KEY = "corleone_otp_target";
+const OTP_TYPE_KEY = "corleone_otp_type";
+const OTP_NAME_KEY = "corleone_pending_user_name";
 
 const inboxEmails = [
   {
-    title: "Welcome to RepoHive Mail",
-    from: "RepoHive Team",
+    title: "Welcome to Corleone App Hub Mail",
+    from: "Corleone App Hub Team",
     body: "Your secure mailbox is ready. You can receive workspace updates, system notifications, and team messages.",
   },
   {
@@ -14,14 +17,14 @@ const inboxEmails = [
   {
     title: "Project Workspace Invitation",
     from: "Douglas Hill",
-    body: "You have been added to a RepoHive workspace. Open your dashboard to view tasks, repositories, and updates.",
+    body: "You have been added to a Corleone App Hub workspace. Open your dashboard to view tasks, repositories, and updates.",
   },
 ];
 
 const archivedEmails = [
   {
     title: "Repository Access Updated",
-    from: "RepoHive Admin",
+    from: "Corleone App Hub Admin",
     body: "Your access to the API prototype repository was updated for the current UI/UX phase.",
   },
   {
@@ -43,9 +46,13 @@ const archivedEmails = [
 
 let sentEmails = readSentEmails();
 let currentBox = "inbox";
+let otpAutoVerifyTimer = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-  setupOtpScreen();
+  if (!document.querySelector("[data-server-otp='true']")) {
+    setupOtpScreen();
+  }
+
   setupOtpInputs();
 
   if (document.getElementById("mailList")) {
@@ -84,6 +91,64 @@ function savePrototypeUser(email, name = "Verified User", provider = "prototype"
   localStorage.setItem("auth_provider", provider);
 }
 
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function saveOtpSession(target, type, name = "") {
+  const otp = generateOtp();
+
+  sessionStorage.setItem(OTP_STORAGE_KEY, otp);
+  sessionStorage.setItem(OTP_TARGET_KEY, target);
+  sessionStorage.setItem(OTP_TYPE_KEY, type);
+
+  if (name) {
+    sessionStorage.setItem(OTP_NAME_KEY, name);
+  }
+
+  return otp;
+}
+
+function readOtpValue() {
+  return sessionStorage.getItem(OTP_STORAGE_KEY) || localStorage.getItem("prototype_otp") || "";
+}
+
+function readOtpTarget() {
+  return sessionStorage.getItem(OTP_TARGET_KEY) || localStorage.getItem("otp_target") || "your account";
+}
+
+function readOtpType() {
+  return sessionStorage.getItem(OTP_TYPE_KEY) || localStorage.getItem("otp_type") || "otp";
+}
+
+function readPendingName() {
+  return sessionStorage.getItem(OTP_NAME_KEY) || localStorage.getItem("pending_user_name") || "";
+}
+
+function clearOtpSession() {
+  sessionStorage.removeItem(OTP_STORAGE_KEY);
+  sessionStorage.removeItem(OTP_TARGET_KEY);
+  sessionStorage.removeItem(OTP_TYPE_KEY);
+  sessionStorage.removeItem(OTP_NAME_KEY);
+  localStorage.removeItem("prototype_otp");
+  localStorage.removeItem("otp_target");
+  localStorage.removeItem("otp_type");
+  localStorage.removeItem("pending_user_name");
+}
+
+function logoutUser() {
+  sessionStorage.clear();
+  localStorage.removeItem("verified_user");
+  localStorage.removeItem("user_name");
+  localStorage.removeItem("auth_provider");
+  localStorage.removeItem("prototype_otp");
+  localStorage.removeItem("otp_target");
+  localStorage.removeItem("otp_type");
+  localStorage.removeItem("pending_user_name");
+
+  goTo("home", "/");
+}
+
 function loginWithEmail() {
   const email = valueOf("loginEmail");
   const password = valueOf("loginPassword");
@@ -107,9 +172,7 @@ function registerAccount() {
     return;
   }
 
-  localStorage.setItem("pending_user_name", name);
-  localStorage.setItem("otp_target", email);
-  localStorage.setItem("otp_type", "registration");
+  saveOtpSession(email, "registration", name);
   goTo("otpVerify", "/otp/verify");
 }
 
@@ -126,8 +189,7 @@ function sendPhoneOtp() {
     return;
   }
 
-  localStorage.setItem("otp_target", phone);
-  localStorage.setItem("otp_type", "phone");
+  saveOtpSession(phone, "phone");
   goTo("otpVerify", "/otp/verify");
 }
 
@@ -139,30 +201,67 @@ function sendEmailOtp() {
     return;
   }
 
-  localStorage.setItem("otp_target", email);
-  localStorage.setItem("otp_type", "email");
+  saveOtpSession(email, "email");
   goTo("otpVerify", "/otp/verify");
 }
 
 function setupOtpScreen() {
-  setText("otpTarget", localStorage.getItem("otp_target") || "your account");
+  setText("otpTarget", readOtpTarget());
 }
 
 function setupOtpInputs() {
   const otpInputs = document.querySelectorAll(".otp");
 
+  if (!otpInputs.length) {
+    return;
+  }
+
+  const scheduleAutoVerify = () => {
+    clearTimeout(otpAutoVerifyTimer);
+
+    const serverOtpForm = otpInputs[0].closest("form[data-server-otp='true']");
+
+    if (serverOtpForm) {
+      return;
+    }
+
+    if (getOtpCode(otpInputs).length !== otpInputs.length) {
+      return;
+    }
+
+    otpAutoVerifyTimer = setTimeout(() => {
+      validateOtp();
+    }, 250);
+  };
+
   otpInputs.forEach((input, index) => {
+    input.setAttribute("autocomplete", "one-time-code");
+
+    input.addEventListener("focus", () => {
+      input.select();
+    });
+
     input.addEventListener("input", () => {
       input.value = input.value.replace(/[^0-9]/g, "").slice(0, 1);
+      clearOtpMessage();
 
       if (input.value && index < otpInputs.length - 1) {
         otpInputs[index + 1].focus();
       }
+
+      if (input.value && index === otpInputs.length - 1) {
+        input.blur();
+      }
+
+      scheduleAutoVerify();
     });
 
     input.addEventListener("keydown", (event) => {
       if (event.key === "Backspace" && !input.value && index > 0) {
+        event.preventDefault();
         otpInputs[index - 1].focus();
+        otpInputs[index - 1].value = "";
+        clearOtpMessage();
       }
     });
 
@@ -180,22 +279,66 @@ function setupOtpInputs() {
 
       const nextIndex = Math.min(digits.length, otpInputs.length - 1);
       otpInputs[nextIndex].focus();
+      clearOtpMessage();
+      scheduleAutoVerify();
     });
   });
 }
 
-function validateOtp() {
-  const inputs = document.querySelectorAll(".otp");
-  const otp = Array.from(inputs).map((input) => input.value).join("");
+function getOtpCode(inputs = document.querySelectorAll(".otp")) {
+  return Array.from(inputs).map((input) => input.value).join("");
+}
+
+function clearOtpMessage() {
   const message = document.getElementById("message");
 
-  if (otp === prototypeOtp) {
-    const target = localStorage.getItem("otp_target") || "verified.user@example.com";
-    const name = localStorage.getItem("pending_user_name") || target.split("@")[0] || "Verified User";
+  if (message) {
+    message.textContent = "";
+    message.removeAttribute("style");
+  }
+}
 
-    savePrototypeUser(target, name, localStorage.getItem("otp_type") || "otp");
-    localStorage.removeItem("pending_user_name");
-    goTo("mailbox", "/mailbox");
+function validateOtp() {
+  const inputs = document.querySelectorAll(".otp");
+  const otp = getOtpCode(inputs);
+  const message = document.getElementById("message");
+  const storedOtp = readOtpValue();
+
+  clearTimeout(otpAutoVerifyTimer);
+
+  if (!storedOtp) {
+    if (message) {
+      message.textContent = "Please generate an OTP from phone or email verification first.";
+      message.style.color = "#fbbf24";
+    }
+
+    return;
+  }
+
+  if (otp.length < inputs.length) {
+    if (message) {
+      message.textContent = "Please enter the complete 6-digit OTP.";
+      message.style.color = "#fbbf24";
+    }
+
+    return;
+  }
+
+  if (otp === storedOtp) {
+    const target = readOtpTarget() || "verified.user@example.com";
+    const name = readPendingName() || target.split("@")[0] || "Verified User";
+
+    savePrototypeUser(target, name, readOtpType());
+    clearOtpSession();
+
+    if (message) {
+      message.textContent = "OTP verified successfully. Redirecting to mailbox...";
+      message.style.color = "#7dd3fc";
+    }
+
+    setTimeout(() => {
+      goTo("mailbox", "/mailbox");
+    }, 900);
     return;
   }
 
@@ -507,7 +650,7 @@ function generateBotReply(message) {
   const text = message.toLowerCase();
 
   if (text.includes("email") || text.includes("summarize") || text.includes("mailbox")) {
-    return "Your mailbox shows recent updates about OTP verification, workspace invitations, and RepoHive activity notices.";
+    return "Your mailbox shows recent updates about OTP verification, workspace invitations, and Corleone App Hub activity notices.";
   }
 
   if (text.includes("sent")) {
@@ -526,5 +669,5 @@ function generateBotReply(message) {
     return "The current authentication screens are UI prototypes. They store a temporary session in localStorage for flow testing.";
   }
 
-  return "I can help with RepoHive mailbox summaries, email drafting, OTP verification, and navigation through this Laravel UI prototype.";
+  return "I can help with Corleone App Hub mailbox summaries, email drafting, OTP verification, and navigation through this Laravel UI prototype.";
 }

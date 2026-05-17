@@ -1,24 +1,29 @@
 @extends('layouts.app')
 
-@section('title', 'RepoHive Register')
+@section('title', 'Corleone App Hub Register')
 @section('bodyClass', 'auth-surface')
 
 @section('content')
 <div class="center-screen">
-    <main class="card">
-        <div class="brand">RepoHive Registration</div>
+    <main class="card glass-card">
+        <div class="brand">Corleone App Hub</div>
         <h1>Create account</h1>
         <p class="muted">Register a prototype account and continue to OTP verification.</p>
 
-        <form onsubmit="event.preventDefault(); registerAccount();">
+        @if ($errors->any())
+            <div class="warning">{{ $errors->first() }}</div>
+        @endif
+
+        <form method="POST" action="{{ route('register.submit') }}">
+            @csrf
             <label for="registerName">Full Name</label>
-            <input id="registerName" type="text" placeholder="Student User" autocomplete="name">
+            <input id="registerName" name="name" type="text" placeholder="Student User" autocomplete="name" value="{{ old('name') }}">
 
             <label for="registerEmail">Email Address</label>
-            <input id="registerEmail" type="email" placeholder="student@example.com" autocomplete="email">
+            <input id="registerEmail" name="email" type="email" placeholder="student@example.com" autocomplete="email" value="{{ old('email') }}">
 
             <label for="registerPassword">Password</label>
-            <input id="registerPassword" type="password" placeholder="Create password" autocomplete="new-password">
+            <input id="registerPassword" name="password" type="password" placeholder="Create password" autocomplete="new-password">
 
             <button class="btn primary" type="submit">Create account</button>
         </form>

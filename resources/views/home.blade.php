@@ -1,30 +1,75 @@
 @extends('layouts.app')
 
-@section('title', 'RepoHive App Hub')
+@section('title', 'Corleone App Hub')
 @section('bodyClass', 'auth-surface')
 
 @section('content')
-<div class="center-screen">
-    <main class="card hub-card">
-        <div class="brand">RepoHive App Hub</div>
+<div class="hero-shell">
+    <a class="landing-brand" href="{{ route('home') }}" aria-label="Corleone App Hub home">
+        <span class="logo-mark">@include('partials.icon', ['name' => 'logo'])</span>
+        <span>
+            <strong>Corleone</strong>
+            <small>App Hub</small>
+        </span>
+    </a>
 
-        <h1>Welcome to RepoHive</h1>
-        <p class="muted">
-            Access verification, mailbox, and AI assistant tools from one Laravel prototype.
-        </p>
+    <span class="pill hero-pill">HCI Final Prototype</span>
 
-        <div class="actions-grid">
-            <a class="btn primary" href="{{ route('login') }}">Sign in</a>
-            <a class="btn light" href="{{ route('register') }}">Create account</a>
+    <section class="hero-text">
+        <h1>Your secure access, all in one place.</h1>
+        <p>OTP login, validation, mailbox, and AI assistance in one clean SaaS-style workspace.</p>
+    </section>
+
+    <main class="card hub-card glass-card access-card">
+        <div class="access-heading">
+            <span class="access-icon">@include('partials.icon', ['name' => 'lock'])</span>
+            <div>
+                <h1>Choose a secure access flow</h1>
+                <p class="muted">
+                    Continue with OTP verification, open the mailbox dashboard, or ask the AI assistant.
+                </p>
+            </div>
         </div>
 
-        <hr>
+        <div class="feature-grid access-grid">
+            <a class="feature-card primary-feature" href="{{ route('otp.phone') }}">
+                <span class="card-icon icon-phone">@include('partials.icon', ['name' => 'phone-check'])</span>
+                <em></em>
+                <span>Phone OTP</span>
+                <strong>Send verification code</strong>
+                <small>We'll send a code to your mobile number.</small>
+            </a>
+            <a class="feature-card" href="{{ route('otp.email') }}">
+                <span class="card-icon icon-mail">@include('partials.icon', ['name' => 'mail-check'])</span>
+                <em></em>
+                <span>Email OTP</span>
+                <strong>Verify by email</strong>
+                <small>Send a code to your email</small>
+            </a>
+            <a class="feature-card" href="{{ route('otp.verify') }}">
+                <span class="card-icon icon-shield">@include('partials.icon', ['name' => 'shield-check'])</span>
+                <em></em>
+                <span>Validation</span>
+                <strong>Enter OTP code</strong>
+                <small>Validate your code here</small>
+            </a>
+            <a class="feature-card" href="{{ route('mailbox') }}">
+                <span class="card-icon icon-inbox">@include('partials.icon', ['name' => 'inbox'])</span>
+                <em></em>
+                <span>Mailbox</span>
+                <strong>Open dashboard</strong>
+                <small>Access your mailbox and messages</small>
+            </a>
+            <a class="feature-card" href="{{ route('ai-chatbot') }}">
+                <span class="card-icon icon-chat">@include('partials.icon', ['name' => 'chat'])</span>
+                <em></em>
+                <span>AI Chatbot</span>
+                <strong>Get quick help</strong>
+                <small>Ask our AI assistant anytime</small>
+            </a>
+        </div>
 
-        <a class="btn light" href="{{ route('otp.phone') }}">Send OTP via SMS</a>
-        <a class="btn light" href="{{ route('otp.email') }}">Send OTP via Email</a>
-        <a class="btn light" href="{{ route('otp.verify') }}">Validate OTP</a>
-        <a class="btn light" href="{{ route('mailbox') }}">Open Mailbox</a>
-        <a class="btn light" href="{{ route('ai-chatbot') }}">AI Chatbot</a>
+        <div class="divider"><span>OR</span></div>
 
         <button class="btn google" type="button" onclick="loginWithGoogle()">
             <img src="{{ asset('assets/Google_Favicon_2025.svg.webp') }}" alt="" height="26" width="26">
@@ -32,7 +77,7 @@
         </button>
 
         <p class="note">
-            UI/UX prototype only. Authentication, OTP, mailbox, and chatbot flows are simulated for the next development stage.
+            Prototype screens keep the original front-end functions and localStorage flow.
         </p>
     </main>
 </div>

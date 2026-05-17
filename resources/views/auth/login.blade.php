@@ -1,21 +1,26 @@
 @extends('layouts.app')
 
-@section('title', 'RepoHive Login')
+@section('title', 'Corleone App Hub Login')
 @section('bodyClass', 'auth-surface')
 
 @section('content')
 <div class="center-screen">
-    <main class="card">
-        <div class="brand">RepoHive Authentication</div>
+    <main class="card glass-card">
+        <div class="brand">Corleone App Hub</div>
         <h1>Sign in</h1>
         <p class="muted">Use a prototype account to continue to the mailbox dashboard.</p>
 
-        <form onsubmit="event.preventDefault(); loginWithEmail();">
+        @if ($errors->any())
+            <div class="warning">{{ $errors->first() }}</div>
+        @endif
+
+        <form method="POST" action="{{ route('login.submit') }}">
+            @csrf
             <label for="loginEmail">Email Address</label>
-            <input id="loginEmail" type="email" placeholder="student@example.com" autocomplete="email">
+            <input id="loginEmail" name="email" type="email" placeholder="student@example.com" autocomplete="email" value="{{ old('email') }}">
 
             <label for="loginPassword">Password</label>
-            <input id="loginPassword" type="password" placeholder="Enter password" autocomplete="current-password">
+            <input id="loginPassword" name="password" type="password" placeholder="Enter password" autocomplete="current-password">
 
             <button class="btn primary" type="submit">Sign in</button>
         </form>

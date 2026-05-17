@@ -1,18 +1,23 @@
 @extends('layouts.app')
 
-@section('title', 'Send Email OTP')
+@section('title', 'Corleone Email OTP')
 @section('bodyClass', 'auth-surface')
 
 @section('content')
 <div class="center-screen">
-    <main class="card">
-        <div class="brand">Email Verification</div>
+    <main class="card glass-card">
+        <div class="brand">Corleone App Hub</div>
         <h1>Send OTP to Email</h1>
         <p class="muted">Enter your email address to receive a 6-digit verification code.</p>
 
-        <form onsubmit="event.preventDefault(); sendEmailOtp();">
+        @if ($errors->any())
+            <div class="warning">{{ $errors->first() }}</div>
+        @endif
+
+        <form method="POST" action="{{ route('otp.email.send') }}">
+            @csrf
             <label for="email">Email Address</label>
-            <input id="email" type="email" placeholder="example@company.com" autocomplete="email">
+            <input id="email" name="email" type="email" placeholder="example@company.com" autocomplete="email" value="{{ old('email') }}">
 
             <button class="btn primary" type="submit">Send OTP</button>
         </form>
