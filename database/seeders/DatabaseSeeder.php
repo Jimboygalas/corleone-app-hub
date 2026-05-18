@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'demo@corleone.test',
         ], [
             'name' => 'Demo Admin',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('password'),
         ]);
     }
 }

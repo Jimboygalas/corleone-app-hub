@@ -27,12 +27,6 @@ return [
         'token' => env('REPOHIVE_SMS_API_TOKEN'),
     ],
 
-    'repohive_email' => [
-        'base_url' => env('REPOHIVE_EMAIL_API_BASE', 'https://repohive.com/api'),
-        'endpoint' => env('REPOHIVE_EMAIL_API_ENDPOINT', '/email/send'),
-        'token' => env('REPOHIVE_EMAIL_API_TOKEN'),
-    ],
-
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

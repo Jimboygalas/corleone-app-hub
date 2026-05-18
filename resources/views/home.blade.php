@@ -71,6 +71,11 @@
 
         <div class="divider"><span>OR</span></div>
 
+        <div class="auth-action-row" aria-label="Account access">
+            <a class="btn light" href="{{ route('login') }}">Sign In</a>
+            <a class="btn primary" href="{{ route('register') }}">Create Account</a>
+        </div>
+
         <button class="btn google" type="button" onclick="loginWithGoogle()">
             <img src="{{ asset('assets/Google_Favicon_2025.svg.webp') }}" alt="" height="26" width="26">
             Login with Google Account

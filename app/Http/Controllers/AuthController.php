@@ -70,7 +70,7 @@ class AuthController extends Controller
         ]);
 
         return redirect()
-            ->route('otp.phone')
-            ->with('success', 'Login accepted. Please request a phone OTP to continue.');
+            ->route('otp.select')
+            ->with('success', 'Login accepted. Please choose an OTP method to continue.');
     }
 }

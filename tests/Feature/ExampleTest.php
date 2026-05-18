@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 // use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Mail\OtpMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use RuntimeException;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -21,8 +24,10 @@ class ExampleTest extends TestCase
         $response->assertSee('Corleone App Hub');
         $response->assertSee('Phone OTP');
         $response->assertSee(route('otp.phone'));
-        $response->assertDontSee('Sign In');
-        $response->assertDontSee('Create Account');
+        $response->assertSee('Sign In');
+        $response->assertSee('Create Account');
+        $response->assertSee(route('login'));
+        $response->assertSee(route('register'));
     }
 
     public function test_prototype_routes_render_successfully(): void
@@ -74,7 +79,7 @@ class ExampleTest extends TestCase
         ])->assertSessionHasErrors(['email']);
     }
 
-    public function test_register_saves_user_and_sends_user_to_phone_otp(): void
+    public function test_register_saves_user_and_sends_user_to_otp_selection(): void
     {
         Http::fake();
 
@@ -84,7 +89,7 @@ class ExampleTest extends TestCase
             'password' => 'password123',
         ]);
 
-        $response->assertRedirect('/otp/phone');
+        $response->assertRedirect('/otp');
         $response->assertSessionMissing('otp.code');
         $response->assertSessionHas('otp.target', 'student@example.com');
         $this->assertAuthenticated();
@@ -93,6 +98,23 @@ class ExampleTest extends TestCase
             'email' => 'student@example.com',
         ]);
         Http::assertNothingSent();
+    }
+
+    public function test_otp_selection_requires_login_and_shows_phone_and_email_choices(): void
+    {
+        $this->get('/otp')->assertRedirect('/login');
+
+        $user = User::factory()->create();
+
+        $this
+            ->actingAs($user)
+            ->get('/otp')
+            ->assertStatus(200)
+            ->assertSee('Choose OTP Method')
+            ->assertSee('Phone OTP')
+            ->assertSee('Email OTP')
+            ->assertSee(route('otp.phone'))
+            ->assertSee(route('otp.email'));
     }
 
     public function test_sms_otp_fails_without_exposing_code_when_token_is_missing(): void
@@ -133,17 +155,11 @@ class ExampleTest extends TestCase
             && $request['to'] === '+639000000000');
     }
 
-    public function test_email_otp_calls_repohive_when_token_is_configured(): void
+    public function test_email_otp_sends_laravel_mail_without_repohive_api(): void
     {
-        config([
-            'services.repohive_email.token' => 'test-token',
-            'services.repohive_email.base_url' => 'https://repohive.com/api',
-            'services.repohive_email.endpoint' => '/email/send',
-        ]);
-
-        Http::fake([
-            'repohive.com/api/email/send' => Http::response(['ok' => true], 200),
-        ]);
+        config(['services.repohive_email.token' => null]);
+        Http::fake();
+        Mail::fake();
 
         $response = $this->post('/otp/email', [
             'email' => 'person@example.com',
@@ -153,61 +169,42 @@ class ExampleTest extends TestCase
         $response->assertSessionHas('otp.code');
         $response->assertSessionHas('otp.target', 'person@example.com');
 
-        Http::assertSent(function ($request) {
-            $payload = $request->data();
-            $keys = array_keys($payload);
-            sort($keys);
-
-            return $request->url() === 'https://repohive.com/api/email/send'
-                && $request->hasHeader('Authorization', 'Bearer test-token')
-                && $request->hasHeader('Accept', 'application/json')
-                && $request->hasHeader('Content-Type', 'application/json')
-                && $keys === ['html', 'subject', 'text', 'to']
-                && $payload['to'] === 'person@example.com'
-                && $payload['subject'] === 'Your Corleone App Hub OTP'
-                && preg_match('/^<p>Your code is <strong>\d{6}<\/strong>\.<\/p>$/', $payload['html']) === 1
-                && preg_match('/^Your code is \d{6}\.$/', $payload['text']) === 1;
-        });
+        Mail::assertSent(OtpMail::class, fn (OtpMail $mail) => $mail->hasTo('person@example.com')
+            && $mail->otp === session('otp.code')
+            && preg_match('/^\d{6}$/', $mail->otp) === 1);
+        Http::assertNothingSent();
     }
 
-    public function test_email_otp_falls_back_to_phone_without_ui_error_when_provider_fails(): void
+    public function test_email_otp_fails_without_exposing_code_when_smtp_fails(): void
     {
-        config([
-            'app.debug' => true,
-            'services.repohive_email.token' => 'test-token',
-            'services.repohive_email.base_url' => 'https://repohive.com/api',
-            'services.repohive_email.endpoint' => 'email/send',
-        ]);
-
-        Http::fake([
-            'repohive.com/api/email/send' => Http::response(['message' => 'Invalid recipient'], 422),
-        ]);
-        Log::spy();
+        Mail::shouldReceive('to')
+            ->once()
+            ->with('person@example.com')
+            ->andThrow(new RuntimeException('SMTP unavailable'));
 
         $response = $this->post('/otp/email', [
             'email' => 'person@example.com',
         ]);
 
-        $response->assertRedirect('/otp/phone');
-        $response->assertSessionHasNoErrors();
+        $response->assertSessionHasErrors([
+            'email' => 'Email OTP could not be sent. Please check Gmail SMTP configuration.',
+        ]);
         $response->assertSessionMissing('otp');
-        Log::shouldHaveReceived('error')
-            ->with('Repohive Email OTP sending failed.', \Mockery::on(
-                fn (array $context) => $context['response'] === '{"message":"Invalid recipient"}'
-            ));
     }
 
-    public function test_email_otp_fails_without_exposing_code_when_token_is_missing(): void
+    public function test_email_otp_does_not_require_repohive_email_token(): void
     {
         config(['services.repohive_email.token' => null]);
+        Mail::fake();
 
         $response = $this->post('/otp/email', [
             'email' => 'person@example.com',
         ]);
 
-        $response->assertRedirect('/otp/phone');
+        $response->assertRedirect('/otp/verify');
         $response->assertSessionHasNoErrors();
-        $response->assertSessionMissing('otp');
+        $response->assertSessionHas('otp.code');
+        Mail::assertSent(OtpMail::class);
     }
 
     public function test_otp_verify_page_does_not_display_stored_code(): void
@@ -294,32 +291,43 @@ class ExampleTest extends TestCase
         ]);
     }
 
-    public function test_database_login_sends_user_to_phone_otp_without_email_api_call(): void
+    public function test_database_login_sends_user_to_otp_selection_without_email_api_call(): void
     {
         User::factory()->create([
             'email' => 'demo@corleone.test',
-            'password' => 'password123',
+            'password' => 'password',
         ]);
 
         Http::fake();
 
         $response = $this->post('/login', [
             'email' => 'demo@corleone.test',
-            'password' => 'password123',
+            'password' => 'password',
         ]);
 
-        $response->assertRedirect('/otp/phone');
+        $response->assertRedirect('/otp');
         $response->assertSessionMissing('otp.code');
         $response->assertSessionHas('otp.target', 'demo@corleone.test');
         $this->assertAuthenticated();
         Http::assertNothingSent();
     }
 
+    public function test_database_seeder_creates_default_demo_login_account(): void
+    {
+        $this->seed();
+
+        $user = User::where('email', 'demo@corleone.test')->first();
+
+        $this->assertNotNull($user);
+        $this->assertTrue(Hash::check('password', $user->password));
+        $this->assertFalse(Hash::check('password123', $user->password));
+    }
+
     public function test_database_login_rejects_wrong_credentials(): void
     {
         User::factory()->create([
             'email' => 'demo@corleone.test',
-            'password' => 'password123',
+            'password' => 'password',
         ]);
 
         $response = $this->post('/login', [
