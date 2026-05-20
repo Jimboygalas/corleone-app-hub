@@ -64,9 +64,16 @@ class AuthController extends Controller
 
     private function startLoginOtp(string $email): RedirectResponse
     {
+        $user = Auth::user();
+        $name = trim((string) $user?->name);
+
+        session()->forget('otp');
+
         session([
             'otp.target' => $email,
             'otp.type' => 'login',
+            'otp.user_email' => $email,
+            'otp.user_name' => $name,
         ]);
 
         return redirect()

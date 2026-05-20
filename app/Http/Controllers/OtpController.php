@@ -65,7 +65,7 @@ class OtpController extends Controller
         return User::firstOrCreate(
             ['email' => 'demo@corleone.test'],
             [
-                'name' => 'Demo User',
+                'name' => 'System User',
                 'password' => Str::random(32),
             ],
         );

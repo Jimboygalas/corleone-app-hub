@@ -14,13 +14,15 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-Route::view('/otp', 'otp.select')->middleware('auth')->name('otp.select');
-Route::view('/otp/phone', 'otp.phone')->name('otp.phone');
-Route::view('/otp/email', 'otp.email')->name('otp.email');
-Route::view('/otp/verify', 'otp.verify')->name('otp.verify');
-Route::post('/otp/phone', [SmsController::class, 'send'])->name('otp.phone.send');
-Route::post('/otp/email', [EmailController::class, 'send'])->name('otp.email.send');
-Route::post('/otp/verify', [OtpController::class, 'verify'])->name('otp.verify.submit');
+Route::middleware('auth')->group(function () {
+    Route::view('/otp', 'otp.select')->name('otp.select');
+    Route::view('/otp/phone', 'otp.phone')->name('otp.phone');
+    Route::view('/otp/email', 'otp.email')->name('otp.email');
+    Route::view('/otp/verify', 'otp.verify')->name('otp.verify');
+    Route::post('/otp/phone', [SmsController::class, 'send'])->name('otp.phone.send');
+    Route::post('/otp/email', [EmailController::class, 'send'])->name('otp.email.send');
+    Route::post('/otp/verify', [OtpController::class, 'verify'])->name('otp.verify.submit');
+});
 
 Route::view('/mailbox', 'mailbox')->middleware(['auth', 'otp.verified'])->name('mailbox');
 Route::view('/ai-chatbot', 'ai-chatbot')->name('ai-chatbot');

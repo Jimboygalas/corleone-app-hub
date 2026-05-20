@@ -8,14 +8,19 @@ use Illuminate\Mail\Mailables\Envelope;
 
 class OtpMail extends Mailable
 {
-    public function __construct(public readonly string $otp)
+    public function __construct(
+        public readonly string $otp,
+        public readonly string $otpSubject = 'Your Corleone App Hub OTP',
+        public readonly string $name = 'Corleone App Hub User',
+        public readonly int $expiresInMinutes = 10,
+    )
     {
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Corleone App Hub OTP',
+            subject: $this->otpSubject,
         );
     }
 
@@ -26,6 +31,8 @@ class OtpMail extends Mailable
             text: 'emails.otp-text',
             with: [
                 'otp' => $this->otp,
+                'name' => $this->name,
+                'expiresInMinutes' => $this->expiresInMinutes,
             ],
         );
     }

@@ -16,10 +16,6 @@
             <div class="success">{{ session('success') }}</div>
         @endif
 
-        @if (session('warning'))
-            <div id="otpStatusNote" class="warning">{{ session('warning') }}</div>
-        @endif
-
         <form method="POST" action="{{ route('otp.verify.submit') }}" data-server-otp="true">
             @csrf
             <div class="otp-box" aria-label="One-time password">
